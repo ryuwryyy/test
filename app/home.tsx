@@ -24,6 +24,7 @@ export default function Home({ siteUrl }: { siteUrl: string }) {
   const [error, setError] = useState("");
   const [image, setImage] = useState("");
   const [camera, setCamera] = useState(false);
+  const [notice, setNotice] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,6 +39,7 @@ export default function Home({ siteUrl }: { siteUrl: string }) {
       if (!res.ok) throw new Error(json.error);
       if (json.id) return router.push(`/r/${json.id}`);
       setImage(json.image);
+      setNotice(json.notice ?? "");
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "生成に失敗しました");
@@ -54,6 +56,7 @@ export default function Home({ siteUrl }: { siteUrl: string }) {
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="result" src={image} alt="導かれた姿" />
+          {notice && <p className="error">{notice}</p>}
           <Share pageUrl={siteUrl} imageUrl={image} text="わたし、円環の理に導かれました" />
           <button className="again" onClick={() => setImage("")}>
             もう一度導かれる
