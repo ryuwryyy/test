@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getResultUrl } from "@/lib/blob";
 import { SITE_NAME, siteUrl } from "@/lib/site";
-import Share from "./share";
+import Share from "@/app/share";
 
 type Props = { params: Promise<{ id: string }> };
 
