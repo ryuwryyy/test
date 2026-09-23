@@ -24,9 +24,9 @@ npm run dev
 
 ## デプロイ (Vercel)
 
-1. このディレクトリ (`enkan/`) を Root Directory にしてプロジェクトを作成
+1. リポジトリを Import（Root Directory は空のまま）
 2. Storage → Blob ストアを作成して接続（`BLOB_READ_WRITE_TOKEN` が自動で入る）
-3. `OPENAI_API_KEY` と `NEXT_PUBLIC_SITE_URL`（本番ドメイン）を環境変数に設定
+3. `OPENAI_API_KEY` を環境変数に設定（独自ドメインを使う場合は `NEXT_PUBLIC_SITE_URL` も）
 
 ## 公開前に検討したいこと
 
