@@ -39,18 +39,15 @@ export async function POST(req: Request) {
 
   const image = `data:image/png;base64,${b64}`;
 
-  // Blob 未接続でも画像だけは見せる（この場合シェア用ページは作れない）
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return Response.json({ image, notice: "BLOB_READ_WRITE_TOKEN が未設定のため、シェア用ページを作れませんでした" });
-  }
-
   const id = randomUUID().replaceAll("-", "");
   try {
-    // 元の顔写真は保存せず、生成結果だけを保存する（シェア・OGP用）
+    // 元の顔写真は保存せず、生成結果だけを保存する（シェア・OGP用）。
+    // 認証は BLOB_READ_WRITE_TOKEN でも、Vercel の OIDC + BLOB_STORE_ID でもよい（SDK が判断する）
     await savePng(blobPath(id), Buffer.from(b64, "base64"));
   } catch (e) {
     console.error(e);
     const msg = e instanceof Error ? e.message : String(e);
+    // Blob 未接続などで保存できなくても画像だけは見せる
     return Response.json({ image, notice: `画像を保存できず、シェア用ページを作れませんでした: ${msg}` });
   }
 
