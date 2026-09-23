@@ -12,17 +12,36 @@ export async function POST(req: Request) {
     return Response.json({ error: "4MB以下の画像を選んでください" }, { status: 400 });
   }
 
+  const apiKey = process.env.OPENAI_API_KEY ?? process.env.OPENAI_KEY;
+  if (!apiKey) {
+    return Response.json({ error: "サーバーに OPENAI_API_KEY が設定されていません" }, { status: 500 });
+  }
+
+  let b64: string;
   try {
-    const res = await new OpenAI().images.edit({
+    const res = await new OpenAI({ apiKey }).images.edit({
       model: process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2",
       image: await toFile(photo, "face.jpg", { type: photo.type }),
       prompt: PROMPT,
       size: "1024x1536",
       quality: "medium",
     });
-    const b64 = res.data?.[0]?.b64_json;
-    if (!b64) throw new Error("no image");
+    const out = res.data?.[0]?.b64_json;
+    if (!out) throw new Error("画像が返ってきませんでした");
+    b64 = out;
+  } catch (e) {
+    console.error(e);
+    // 原因（キー不正・組織未認証・残高不足・安全フィルタなど）をそのまま画面に出す
+    const msg = e instanceof Error ? e.message : String(e);
+    return Response.json({ error: `画像生成に失敗しました: ${msg}` }, { status: 500 });
+  }
 
+  // Blob 未接続でも画像だけは見せる（この場合シェア用ページは作れない）
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return Response.json({ image: `data:image/png;base64,${b64}` });
+  }
+
+  try {
     // 元の顔写真は保存せず、生成結果だけを公開URLに置く（シェア・OGP用）
     const id = randomUUID().replaceAll("-", "");
     await put(blobPath(id), Buffer.from(b64, "base64"), {
@@ -33,6 +52,6 @@ export async function POST(req: Request) {
     return Response.json({ id });
   } catch (e) {
     console.error(e);
-    return Response.json({ error: "生成に失敗しました。別の写真で試してください" }, { status: 500 });
+    return Response.json({ image: `data:image/png;base64,${b64}` });
   }
 }
