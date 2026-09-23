@@ -18,3 +18,4 @@ Serene, merciful, holy atmosphere. Soft glow, high detail. No text, no logos.`;
 
 export const ID_RE = /^[a-f0-9]{32}$/;
 export const blobPath = (id: string) => `results/${id}.png`;
+export const ogPath = (id: string) => `results/${id}-og.png`;

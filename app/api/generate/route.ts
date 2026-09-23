@@ -1,7 +1,8 @@
 import OpenAI, { toFile } from "openai";
 import { put } from "@vercel/blob";
 import { randomUUID } from "node:crypto";
-import { PROMPT, blobPath } from "@/lib/site";
+import { renderOg } from "@/lib/og";
+import { PROMPT, blobPath, ogPath } from "@/lib/site";
 
 export const maxDuration = 120; // 画像生成は数十秒かかる
 
@@ -49,6 +50,17 @@ export async function POST(req: Request) {
       contentType: "image/png",
       addRandomSuffix: false,
     });
+    // X などのクローラーがすぐ読めるよう、OGP 画像もここで作って静的な PNG として置いておく
+    try {
+      const og = await renderOg(`data:image/png;base64,${b64}`);
+      await put(ogPath(id), Buffer.from(await og.arrayBuffer()), {
+        access: "public",
+        contentType: "image/png",
+        addRandomSuffix: false,
+      });
+    } catch (e) {
+      console.error("og", e); // 失敗しても /r/{id}/og で動的に作れる
+    }
     return Response.json({ id });
   } catch (e) {
     console.error(e);
