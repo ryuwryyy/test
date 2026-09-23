@@ -20,6 +20,7 @@ export default function Home() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [image, setImage] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,9 +31,11 @@ export default function Home() {
       const body = new FormData();
       body.append("photo", await shrink(file), "face.jpg");
       const res = await fetch("/api/generate", { method: "POST", body });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({ error: `サーバーエラー (${res.status})。時間切れの可能性があります` }));
       if (!res.ok) throw new Error(json.error);
-      router.push(`/r/${json.id}`);
+      if (json.id) return router.push(`/r/${json.id}`);
+      setImage(json.image);
+      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "生成に失敗しました");
       setLoading(false);
@@ -65,6 +68,18 @@ export default function Home() {
         </button>
         {error && <p className="error">{error}</p>}
       </form>
+
+      {image && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="result" src={image} alt="導かれた姿" />
+          <div className="share">
+            <a href={image} download="enkan.png">
+              画像を保存
+            </a>
+          </div>
+        </>
+      )}
     </>
   );
 }
