@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getOgUrl, getResultUrl } from "@/lib/blob";
-import { SITE_DESC, SITE_NAME, siteUrl } from "@/lib/site";
+import { exists } from "@/lib/blob";
+import { ID_RE, SITE_DESC, SITE_NAME, blobPath, siteUrl } from "@/lib/site";
 import Share from "@/app/share";
 
 type Props = { params: Promise<{ id: string }> };
@@ -11,9 +11,8 @@ const TITLE = `円環の理に導かれました | ${SITE_NAME}`;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  // 生成時に保存した静的な OGP 画像を優先し、なければ動的に作る
-  const og = (await getOgUrl(id)) ?? `/r/${id}/og`;
-  const images = [{ url: og, width: 1200, height: 630, alt: "円環の理に導かれた姿" }];
+  // 画像はこのサイトのドメインから配信する（Blob が非公開ストアでも X が読める）
+  const images = [{ url: `/r/${id}/og`, width: 1200, height: 630, alt: "円環の理に導かれた姿" }];
   return {
     title: TITLE,
     description: SITE_DESC,
@@ -24,8 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Result({ params }: Props) {
   const { id } = await params;
-  const url = await getResultUrl(id);
-  if (!url) notFound();
+  if (!ID_RE.test(id) || !(await exists(blobPath(id)))) notFound();
+  const url = `/r/${id}/image`;
 
   return (
     <>

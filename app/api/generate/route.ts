@@ -1,6 +1,6 @@
 import OpenAI, { toFile } from "openai";
-import { put } from "@vercel/blob";
 import { randomUUID } from "node:crypto";
+import { savePng } from "@/lib/blob";
 import { renderOg } from "@/lib/og";
 import { PROMPT, blobPath, ogPath } from "@/lib/site";
 
@@ -37,33 +37,29 @@ export async function POST(req: Request) {
     return Response.json({ error: `画像生成に失敗しました: ${msg}` }, { status: 500 });
   }
 
+  const image = `data:image/png;base64,${b64}`;
+
   // Blob 未接続でも画像だけは見せる（この場合シェア用ページは作れない）
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return Response.json({ image: `data:image/png;base64,${b64}` });
+    return Response.json({ image, notice: "BLOB_READ_WRITE_TOKEN が未設定のため、シェア用ページを作れませんでした" });
   }
 
+  const id = randomUUID().replaceAll("-", "");
   try {
-    // 元の顔写真は保存せず、生成結果だけを公開URLに置く（シェア・OGP用）
-    const id = randomUUID().replaceAll("-", "");
-    await put(blobPath(id), Buffer.from(b64, "base64"), {
-      access: "public",
-      contentType: "image/png",
-      addRandomSuffix: false,
-    });
-    // X などのクローラーがすぐ読めるよう、OGP 画像もここで作って静的な PNG として置いておく
-    try {
-      const og = await renderOg(`data:image/png;base64,${b64}`);
-      await put(ogPath(id), Buffer.from(await og.arrayBuffer()), {
-        access: "public",
-        contentType: "image/png",
-        addRandomSuffix: false,
-      });
-    } catch (e) {
-      console.error("og", e); // 失敗しても /r/{id}/og で動的に作れる
-    }
-    return Response.json({ id });
+    // 元の顔写真は保存せず、生成結果だけを保存する（シェア・OGP用）
+    await savePng(blobPath(id), Buffer.from(b64, "base64"));
   } catch (e) {
     console.error(e);
-    return Response.json({ image: `data:image/png;base64,${b64}` });
+    const msg = e instanceof Error ? e.message : String(e);
+    return Response.json({ image, notice: `画像を保存できず、シェア用ページを作れませんでした: ${msg}` });
   }
+
+  // X などのクローラーがすぐ読めるよう、OGP 画像もここで作って保存しておく
+  try {
+    const og = await renderOg(image);
+    await savePng(ogPath(id), Buffer.from(await og.arrayBuffer()));
+  } catch (e) {
+    console.error("og", e); // 失敗しても /r/{id}/og でその場で作れる
+  }
+  return Response.json({ id });
 }
