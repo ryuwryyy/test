@@ -98,7 +98,14 @@ export default function Home() {
           </label>
 
           <button disabled={!file || !agreed || loading}>
-            {loading ? "導かれています…（30秒ほど）" : "円環の理に導かれる"}
+            {loading ? (
+              <>
+                30秒ほどお待ちください
+                <span className="spinner" aria-hidden />
+              </>
+            ) : (
+              "円環の理に導かれる"
+            )}
           </button>
           {error && <p className="error">{error}</p>}
         </form>
